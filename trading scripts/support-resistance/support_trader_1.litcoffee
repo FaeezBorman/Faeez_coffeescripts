@@ -1,4 +1,4 @@
-class sellTrade
+
   constructor: (@tn,@p,@v,@tf,@tp,@sl,@tpv,@slv) ->
   current: ->
     c = 
@@ -70,7 +70,7 @@ handle: (context, data)->
         optInTimePeriod: 12
 
     H = max[max.length-1]
-    L = min[min.length-1]
+
     C = instrument.close[instrument.close.length-1]
 	
 	# calculate trend for past 3 candles
