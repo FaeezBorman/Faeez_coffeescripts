@@ -1,0 +1,37 @@
+<NotepadPlus>
+    <Project name="v.01">
+        <Folder name="lib">
+            <File name="lib\app.coffee" />
+            <File name="lib\app.js" />
+        </Folder>
+        <Folder name="output" />
+        <Folder name="src">
+            <Folder name="calc">
+                <File name="src\calc\calc_indicators.litcoffee" />
+                <File name="src\calc\highsandlows.litcoffee" />
+                <File name="src\calc\trend.litcoffee" />
+            </Folder>
+            <Folder name="classes">
+                <File name="src\classes\config.litcoffee" />
+                <File name="src\classes\Functions.litcoffee" />
+                <File name="src\classes\HeikinAshi.litcoffee" />
+                <File name="src\classes\sellTrade.litcoffee" />
+                <File name="src\classes\story.litcoffee" />
+            </Folder>
+            <Folder name="context">
+                <File name="src\context\context_init.litcoffee" />
+                <File name="src\context\c_highsandlows.litcoffee" />
+                <File name="src\context\c_trend.litcoffee" />
+            </Folder>
+            <File name="src\close_trades.litcoffee" />
+            <File name="src\context_init.litcoffee" />
+            <File name="src\handle.litcoffee" />
+            <File name="src\open_trades.litcoffee" />
+            <File name="src\plot.litcoffee" />
+            <File name="src\update_trades.litcoffee" />
+        </Folder>
+        <File name="build.sh" />
+        <File name="build_windows.bat" />
+        <File name="Cakefile" />
+    </Project>
+</NotepadPlus>
