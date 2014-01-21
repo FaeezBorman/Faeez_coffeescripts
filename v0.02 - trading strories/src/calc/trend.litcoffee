@@ -1,7 +1,7 @@
     # Trend calculations
     #
     # variables to be added to context
-    #	context.trend = ''
+    # context.trend = ''
     #
     # calculate trend for past 3 candles
     if (instrument.price - short ) < 0 

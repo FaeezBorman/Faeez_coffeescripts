@@ -1,0 +1,3 @@
+#indicator object.....
+class indicator
+  constructor: (@in_name,@in_desc,@in_act,@in_price,@in_low,@in_ave,@in_high,@in_last) ->

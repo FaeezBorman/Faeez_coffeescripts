@@ -1,5 +1,5 @@
     plot
         cH: context.high
         cL: context.low
-        h: H
-        l: L
+        sar: sar
+        lasthigh : context.last_high

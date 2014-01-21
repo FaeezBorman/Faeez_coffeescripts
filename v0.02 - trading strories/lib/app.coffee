@@ -29,8 +29,16 @@ class sellTrade
   log: ->
     d = "trade number :" + @tn + " at price " + @p + " v: " + @v + " tf: " + @tf + " tp: " + @tp + " sl: " + @sl
 
-class Config
-  constructor: (@long_open, @long_close, @short_open, @short_close, @sar_accel, @sar_max, @aroon_period, @aroon_threshold, @macd_fast_period, @macd_slow_period, @macd_signal_period, @macd_short, @macd_long, @rsi_period, @rsi_high, @rsi_low) ->
+#indicator object.....
+class indicator
+  constructor: (@in_name,@in_desc,@in_act,@in_price,@in_low,@in_ave,@in_high,@in_last) ->
+
+#story object.....
+class story
+  constructor: (@story_string,@story_price,@story_count,@story_averageprice) ->
+  run: (@story_price) ->
+    this.story_count = this.story_count + 1
+    this.story_averageprice = (this.story_averageprice + @storyprice) / 2
 
 class Functions
   @diff: (x, y) ->
@@ -125,55 +133,19 @@ class Functions
   @sell: (instrument, limit_percent, timeout) ->
     sell(instrument, null, instrument.price * (1 - limit_percent / 100), timeout)
 
-class HeikinAshi
-  constructor: () ->
-    @ins =
-      open: []
-      close: []
-      high: []
-      low: []
-
-  # update with latest instrument price data
-  put: (ins) ->
-    if @ins.open.length == 0
-      # initial candle
-      @ins.open.push(ins.open[ins.open.length - 1])
-      @ins.close.push(ins.close[ins.close.length - 1])
-      @ins.high.push(ins.high[ins.high.length - 1])
-      @ins.low.push(ins.low[ins.low.length - 1])
-    else
-      # every other candle
-      prev_open = ins.open[ins.open.length - 2]
-      prev_close = ins.close[ins.close.length - 2]
-      curr_open = ins.open[ins.open.length - 1]
-      curr_close = ins.close[ins.close.length - 1]
-      curr_high = ins.high[ins.high.length - 1]
-      curr_low = ins.low[ins.low.length - 1]
-      @ins.open.push((prev_open + prev_close) / 2)
-      @ins.close.push((curr_open + curr_close + curr_high + curr_low) / 4)
-      @ins.high.push(_.max([curr_high, curr_open, curr_close]))
-      @ins.low.push(_.min([curr_low, curr_open, curr_close]))
-
-#story object.....
-
-class story
-  constructor: (@story_string,@story_price,@story_count) ->
-  current: ->
-    c = 
-        story_indicator : @story_indicator
-        story_price : @story_price
-        story_count: @story_count
-    return c
-  #log: ->
-    #d = "trade number :" + @tn + " at price " + @p + " v: " + @v + " tf: " + @tf + " tp: " + @tp + " sl: " + @sl
+class Config
+  constructor: (@long_open, @long_close, @short_open, @short_close, @sar_accel, @sar_max, @aroon_period, @aroon_threshold, @macd_fast_period, @macd_slow_period, @macd_signal_period, @macd_short, @macd_long, @rsi_period, @rsi_high, @rsi_low) ->
 
 # Initialization method called before a simulation starts. 
 # Context object holds script data and will be passed to 'handle' method. 
 init: (context)->
     context.pair = 'btc_usd'
-    context.init = false
-    context.buy_treshold = 0.25
+    # STORY VARIABLES
+    # STORY INDICES
+    context.trend = false
+    
     context.sell_treshold = 0.25
+    context.init = false
     context.stoploss = 0.0
     context.close = 2
     context.trade_mini = 0.0
@@ -183,86 +155,122 @@ init: (context)->
     context.takeProfit = 0.0
     context.tf = 0.0
     context.newhighmode = false
-    context.high = 800
-    context.low = 700
     context.trade = []
     context.lastshorter = 999999
-	#context.pos = false
-
-# Trend
-    context.trend = ''
+    context.enable_ha = false
+    context.last_sar = 999
+    context.config = new Config(0.1, 0.3, 0.3, 2.4, 0.025, 0.2, 10, 20, 14, 22, 9, 0, 1, 20, 52, 48)
 
 # highs and lows
-    context.high = 0
-    context.low = 0
+    context.high = 800
+    context.low = 800
+    context.last_high = 600
 
 # This method is called for each tick
 handle: (context, data)->
     instrument = data[context.pair]
     fiat_have = portfolio.positions[instrument.curr()].amount
     btc_have = portfolio.positions[instrument.asset()].amount
+    context.tf = 0
 
 
+    #Highs and lows Indicator
+    # 
+    
+    hlmode = new indicator("","",false) 
+    hlrange = new indicator("","",false)
+
+    max = talib.MAX
+        inReal: instrument.high
+        startIdx: 0
+        endIdx: instrument.high.length-13
+        optInTimePeriod: 12
+    
+    min = talib.MIN
+        inReal: instrument.low
+        startIdx: 0
+        endIdx: instrument.low.length-13
+        optInTimePeriod: 12
+
+    H = max[max.length-1]
+
+    L = min[min.length-1]
+    
     #new highs and lows
+    
     ihigh = instrument.high[instrument.high.length-1]
     ilow = instrument.low[instrument.low.length-1]
 
+    # hlmode tells if price has new highs, new lows, or in range high and low
     if ihigh >= H 
         context.high = ihigh
-        #debug " Price over resistance #{context.high} - set new high"
-    
+        hlmode = new indicator("HL","new highs: price above last resistance",false)   
+    if context.last_high > context.high and ihigh >= H
+        hlmode = new indicator("HL","price is dropping from testing new highs",true)
+    else
+      context.last_high = context.high
     if ilow <= L 
         context.low = ilow
+        hlmode = new indicator("HL","new lows: price below last resistance",false)   
+    if ihigh <= H and ilow >= L and ihigh <= context.high and ilow >= context.low
+        hlmode = new indicator("HL","in range: price between H and L",false)
+    
+    # hlrange tells how big the gap between high and low is / i.e volatility
+    if (context.high - context.low) > 30 
+        hlrange = new indicator("HLRH","big range",true,(context.high - context.low))
+    if (context.high - context.low) > 20 
+        hlrange = new indicator("HLRM","medium range",true,context.high - context.low)
+    if (context.high - context.low) < 20 
+        hlrange = new indicator("HLRL","low range",false,context.high - context.low)
+    
 
-    # Trend calculations
-    #
-    # variables to be added to context
-    #	context.trend = ''
-    #
-    # calculate trend for past 3 candles
-    if (instrument.price - short ) < 0 
-        trend = 'down'
-    else
-        trend = 'up'
 
+    # context variables
+    # context.ha = new HeikinAshi()
+    
     # calc ichi indicators
-    tk_diff = Math.abs(Functions.diff(c.tenkan, c.kijun))
-    tenkan_min = _.min([c.tenkan, c.kijun])
-    tenkan_max = _.max([c.tenkan, c.kijun])
-    kumo_min = _.min([c.senkou_a, c.senkou_b])
-    kumo_max = _.max([c.senkou_a, c.senkou_b])
+    #tk_diff = Math.abs(Functions.diff(c.tenkan, c.kijun))
+    #tenkan_min = _.min([c.tenkan, c.kijun])
+    #tenkan_max = _.max([c.tenkan, c.kijun])
+    #kumo_min = _.min([c.senkou_a, c.senkou_b])
+    #kumo_max = _.max([c.senkou_a, c.senkou_b])
 
     # calc sar indicator
     if context.enable_ha
-      sar = Functions.sar(context.ha.ins.high, context.ha.ins.low, config.sar_accel, config.sar_max)
+      sar = Functions.sar(context.ha.ins.high, context.ha.ins.low, 0.025, 0.2)
     else
-      sar = Functions.sar(instrument.high, instrument.low, config.sar_accel, config.sar_max)
+      sar = Functions.sar(instrument.high, instrument.low, 0.025, 0.2)
+      if sar > instrument.price
+         psar = new indicator("SAR","sar indicating start of down trend",true)
+      else 
+         psar = new indicator("SAR","sar indicating up trend",false)
+      context.last_sar = sar
 
     # calc aroon indicator
-    if context.enable_ha
-      aroon = Functions.aroon(context.ha.ins.high, context.ha.ins.low, config.aroon_period)
-    else
-      aroon = Functions.aroon(instrument.high, instrument.low, config.aroon_period)
+    #if context.enable_ha
+    #  aroon = Functions.aroon(context.ha.ins.high, context.ha.ins.low, config.aroon_period)
+    #else
+    #  aroon = Functions.aroon(instrument.high, instrument.low, config.aroon_period)
 
     # calc macd indicator
-    if context.enable_ha
-      macd = Functions.macd(context.ha.ins.close, config.macd_fast_period, config.macd_slow_period,
-      config.macd_signal_period)
-    else
-      macd = Functions.macd(instrument.close, config.macd_fast_period, config.macd_slow_period,
-      config.macd_signal_period)
+    #if context.enable_ha
+    #  macd = Functions.macd(context.ha.ins.close, config.macd_fast_period, config.macd_slow_period,
+    #  config.macd_signal_period)
+    #else
+    #  macd = Functions.macd(instrument.close, config.macd_fast_period, config.macd_slow_period,
+    #  config.macd_signal_period)
 
     # calc rsi indicator
-    if context.enable_ha
-      rsi = Functions.rsi(context.ha.ins.close, config.rsi_period)
-    else
-      rsi = Functions.rsi(instrument.close, config.rsi_period)
+    #if context.enable_ha
+    #  rsi = Functions.rsi(context.ha.ins.close, config.rsi_period)
+    #else
+    #  rsi = Functions.rsi(instrument.close, config.rsi_period)
 
     plot
         cH: context.high
         cL: context.low
-        h: H
-        l: L
+        sar: sar
+        lasthigh : context.last_high
 
     # call to update all open trades 
     # adjust trade targets for current conditions
@@ -294,14 +302,10 @@ handle: (context, data)->
 
     # Find a reason to sell
 
-    diff_h_l = H - L
-
-    if instrument.price + 1 >= context.high and 
-       ilow >= H and 
-       diff_h_l > 20 and
-       context.high >= H
+    if hlmode.in_act and hlrange.in_act and psar.in_act
        #then
-        context.tf = 4 # confidence medium - 10%
+        debug "#{hlmode.in_desc} and #{hlrange.in_desc} and #{psar.in_desc}"
+        context.tf = 4 
 
     # Have a reason, Sell!
     if context.tf > 0
@@ -309,6 +313,11 @@ handle: (context, data)->
         context.tradeNo = context.tradeNo + 1
         context.vol = (btc_have*(context.tf/10))
         context.price = instrument.price
-        context.trade[context.tradeNo] = new sellTrade(context.tradeNo,context.price,context.vol,context.tf)
-        context.trade[context.tradeNo].ctpsl(20,200)
+        #context.trade[context.tradeNo] = new sellTrade(context.tradeNo,context.price,context.vol,context.tf)
         sell instrument,context.vol
+    # fork 1 sell order into seperate trades with dif target range
+        if hlrange.in_price > 20
+           #split into 3
+           for x in [1..3]
+              context.trade.push new sellTrade(context.tradeNo,context.price,context.vol / 3, context.tf) 
+

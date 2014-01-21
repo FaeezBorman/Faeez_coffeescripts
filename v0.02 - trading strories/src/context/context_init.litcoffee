@@ -14,8 +14,7 @@ init: (context)->
     context.takeProfit = 0.0
     context.tf = 0.0
     context.newhighmode = false
-    context.high = 800
-    context.low = 700
     context.trade = []
     context.lastshorter = 999999
-	#context.pos = false
+    context.enable_ha
+    context.config_bear = new Config(0.1, 0.3, 0.3, 2.4, 0.025, 0.2, 10, 20, 14, 22, 9, 0, 1, 20, 52, 48)

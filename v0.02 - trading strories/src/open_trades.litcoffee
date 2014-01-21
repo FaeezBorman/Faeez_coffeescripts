@@ -1,13 +1,9 @@
     # Find a reason to sell
 
-    diff_h_l = H - L
-
-    if instrument.price + 1 >= context.high and 
-       ilow >= H and 
-       diff_h_l > 20 and
-       context.high >= H
+    if hlmode.in_act and hlrange.in_act and psar.in_act
        #then
-        context.tf = 4 # confidence medium - 10%
+        debug "#{hlmode.in_desc} and #{hlrange.in_desc} and #{psar.in_desc}"
+        context.tf = 4 
 
     # Have a reason, Sell!
     if context.tf > 0
@@ -15,6 +11,11 @@
         context.tradeNo = context.tradeNo + 1
         context.vol = (btc_have*(context.tf/10))
         context.price = instrument.price
-        context.trade[context.tradeNo] = new sellTrade(context.tradeNo,context.price,context.vol,context.tf)
-        context.trade[context.tradeNo].ctpsl(20,200)
+        #context.trade[context.tradeNo] = new sellTrade(context.tradeNo,context.price,context.vol,context.tf)
         sell instrument,context.vol
+    # fork 1 sell order into seperate trades with dif target range
+        if hlrange.in_price > 20
+           #split into 3
+           for x in [1..3]
+              context.trade.push new sellTrade(context.tradeNo,context.price,context.vol / 3, context.tf) 
+
