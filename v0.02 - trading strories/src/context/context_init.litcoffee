@@ -1,7 +1,9 @@
 # Initialization method called before a simulation starts. 
 # Context object holds script data and will be passed to 'handle' method. 
 init: (context)->
-    context.pair = 'btc_usd'
+    context.pair = 'btc_usd' 
+    #context.pair = 'ghs_btc' # ghs
+    #context.pair = 'ltc_usd' # ltc
     context.init = false
     context.buy_treshold = 0.25
     context.sell_treshold = 0.25

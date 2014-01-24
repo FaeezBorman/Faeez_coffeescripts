@@ -148,10 +148,10 @@ class limits
   get_asset_lvl1 : ->
     #debug "limits : lvl1_max = #{this.lvl1_max}"
     #if (this.lvl1_tc * 0.1) <= this.lvl1_max # btc
-    if (this.lvl1_tc * 0.1) <= this.lvl1_max # ghs
+    if (this.lvl1_tc ) <= this.lvl1_max # ghs
     #if (this.lvl1_tc * 0.1) <= this.lvl1_max # ltc
        this.lvl1_tc = this.lvl1_tc + 1
-       return 0.1
+       return 1
     else
        return 0
   get_asset_lvl2 : ->
@@ -233,14 +233,14 @@ handle: (context, data)->
     max = talib.MAX
         inReal: instrument.high
         startIdx: 0
-        endIdx: instrument.high.length-13
-        optInTimePeriod: 12
+        endIdx: instrument.high.length-60
+        optInTimePeriod: 60
     
     min = talib.MIN
         inReal: instrument.low
         startIdx: 0
-        endIdx: instrument.low.length-13
-        optInTimePeriod: 12
+        endIdx: instrument.low.length-30
+        optInTimePeriod: 30
 
     H = max[max.length-1]
 
@@ -266,11 +266,11 @@ handle: (context, data)->
         hlmode = new indicator("HL","in range: price between H and L",false)
     
     # hlrange tells how big the gap between high and low is / i.e volatility
-    if (context.high - context.low) > 30 
+    if (context.high - context.low) > 0.00030 
         hlrange = new indicator("HLRH","big range",true,(context.high - context.low))
-    if (context.high - context.low) > 20 
+    if (context.high - context.low) > 0.00020 
         hlrange = new indicator("HLRM","medium range",true,context.high - context.low)
-    if (context.high - context.low) < 20 
+    if (context.high - context.low) < 0.00020 
         hlrange = new indicator("HLRL","low range",false,context.high - context.low)
     
 
@@ -328,6 +328,7 @@ handle: (context, data)->
     ave_price = 0
     total_price = 0
     tcount = 0
+    inprofit = false
     for i of context.trade
         l = context.trade[i].current()
         if (l.p * 0.99) > instrument.price
@@ -338,22 +339,22 @@ handle: (context, data)->
         # Profit target
         total_price = total_price + l.p   
         tcount = ++i
-        #debug "total price : #{total_price} tcount : #{tcount}"
     if total_price > 0 
        ave_price = total_price/tcount
        #debug "ave_price #{ave_price}"
        context.profitline = ave_price * 0.99
+    debug "tcount : #{tcount} total price : #{total_price} ave_price : #{ave_price} profit_line : #{context.profitline}"
 
     # Close trades at target stoploss / takeprofit
 
     for i of context.trade
         l = context.trade[i].current()
         if instrument.price <= l.tp
-            debug "Sell: #{l.v} @ #{l.p} | Buy : #{instrument.price.toFixed(2)}"
+            debug "Sell: #{l.v} @ #{l.p} | Buy : #{instrument.price}"
             buy instrument, l.tpv, instrument.price
             context.trade.splice(i,1)
         if instrument.price >= l.sl
-            debug "!STOP! Sell: #{l.v} @ #{l.p} | Buy : #{instrument.price.toFixed(2)}"
+            debug "!STOP! Sell: #{l.v} @ #{l.p} | Buy : #{instrument.price}"
             buy instrument, l.slv, instrument.price
             context.trade.splice(i,1)
 
@@ -372,9 +373,9 @@ handle: (context, data)->
         #context.trade[context.tradeNo] = new sellTrade(context.tradeNo,context.price,context.vol,context.tf)
         sell instrument,context.vol
     # fork 1 sell order into seperate trades with dif target range
-        if hlrange.in_price > 0.001 # ghs:0.001 ltc:1
+        #if hlrange.in_price > 0.0002 # ghs:0.001 ltc:1
            #split into 3
-           for x in [1..3]
+        for x in [1..3]
               #context.trade.push new sellTrade(context.tradeNo,context.price,context.vol / 3, context.tf,x + 2) # btc 
-              context.trade.push new sellTrade(context.tradeNo,context.price,context.vol / 3, context.tf,x/10000 + 0.0002) # ghs 
+          context.trade.push new sellTrade(context.tradeNo,context.price,context.vol / 3, context.tf,x/10000) # ghs 
               #context.trade.push new sellTrade(context.tradeNo,context.price,context.vol / 3, context.tf,x/10 + 0.2) # ltc

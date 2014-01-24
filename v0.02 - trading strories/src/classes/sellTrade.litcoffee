@@ -3,13 +3,14 @@
 #  Price - Price at which sell was executed
 #  Vol - Volume of asset thats been sold)
 class sellTrade
-  constructor: (@tn,@p,@v,@tf,@tp,@sl,@tpv,@slv) ->
+  constructor: (@tn,@p,@v,@tf,@tsl,@tp,@sl,@tpv,@slv) ->
   current: ->
     c = 
         tn: @tn
         p: @p
         v: @v
         tf: @tf
+        tsl: @tsl
         tp: @tp
         sl: @sl
         tpv: @tpv

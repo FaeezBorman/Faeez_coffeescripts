@@ -1,14 +1,22 @@
     # call to update all open trades 
-    # adjust trade targets for current conditions
-
+    # trailing stop
+    
+    ave_price = 0
+    total_price = 0
+    tcount = 0
+	inprofit = false
     for i of context.trade
-        
-        if H > context.high
-            #debug "detected price drop, adjusted all trade stop loss to 0.5% above #{instrument.price}"  
-            context.trade[i].csl(context.high,1) # price has started to dipping, pulling in the the stoploss to 1$ above current price
+        l = context.trade[i].current()
+        if (l.p * 0.99) > instrument.price
+           inprofit = true
+        if context.downfromlast and inprofit
+            context.trade[i].csl(instrument.price,l.tsl)
             #debug context.trade[i].log()
-
-        if H < context.high and instrument.price < H
-            #debug "detected price drop, adjusted all trade stop loss to 0.5% above #{instrument.price}"  
-            context.trade[i].csl(H,1) # price has started to dipping, pulling in the the stoploss to 1$ above current price
-            #debug context.trade[i].log()
+        # Profit target
+        total_price = total_price + l.p   
+        tcount = ++i
+        #debug "total price : #{total_price} tcount : #{tcount}"
+    if total_price > 0 
+       ave_price = total_price/tcount
+       #debug "ave_price #{ave_price}"
+       context.profitline = ave_price * 0.99

@@ -10,13 +10,13 @@
 
     # calc sar indicator
     if context.enable_ha
-      sar = Functions.sar(context.ha.ins.high, context.ha.ins.low, 0.025, 0.2)
+      sar = Functions.sar(context.ha.ins.high, context.ha.ins.low, 0.025, 0.1)
     else
-      sar = Functions.sar(instrument.high, instrument.low, 0.025, 0.2)
+      sar = Functions.sar(instrument.high, instrument.low, 0.025, 0.1)
       if sar > instrument.price
-         psar = new indicator("SAR","sar indicating start of down trend",true)
+         psar = new indicator("SAR","sar indicating down trend",false)
       else 
-         psar = new indicator("SAR","sar indicating up trend",false)
+         psar = new indicator("SAR","sar indicating up trend",true)
       context.last_sar = sar
 
     # calc aroon indicator

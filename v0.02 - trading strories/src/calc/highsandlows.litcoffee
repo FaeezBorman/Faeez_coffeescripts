@@ -41,9 +41,15 @@
     
     # hlrange tells how big the gap between high and low is / i.e volatility
     if (context.high - context.low) > 30 
+    #if (context.high - context.low) > 0.00030 # ghs
+    #if (context.high - context.low) > 30 # ltc
         hlrange = new indicator("HLRH","big range",true,(context.high - context.low))
     if (context.high - context.low) > 20 
+    #if (context.high - context.low) > 0.00020 # ghs
+    #if (context.high - context.low) > 20 # ltc
         hlrange = new indicator("HLRM","medium range",true,context.high - context.low)
     if (context.high - context.low) < 20 
+    #if (context.high - context.low) < 0.00020 # ghs
+    #if (context.high - context.low) < 20 # ltc
         hlrange = new indicator("HLRL","low range",false,context.high - context.low)
     
